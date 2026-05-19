@@ -219,3 +219,15 @@ __marimo__/
 
 # GSD planning workspace (local-only; not shared with reviewers)
 .planning/
+
+# signbench: phase-1 carveouts — keep dirs (via .gitkeep) but ignore their contents
+data/gtsrb/*
+!data/gtsrb/.gitkeep
+data/taiwan/images/*
+!data/taiwan/images/.gitkeep
+reference/*
+!reference/.gitkeep
+models/*
+!models/.gitkeep
+analysis/*
+!analysis/.gitkeep
