@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# GSD planning workspace (local-only; not shared with reviewers)
+.planning/
