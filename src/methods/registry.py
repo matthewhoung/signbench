@@ -24,15 +24,17 @@ def get_method(name: str) -> ModelStrategy:
         from src.methods.rf_hog.model import RFHOGModel
         return RFHOGModel()
 
-    # Phases 5-6 extend the ladder here:
-    # if name == "plain_cnn":
-    #     from src.methods.plain_cnn.model import PlainCNNModel
-    #     return PlainCNNModel()
-    # if name == "stn_cnn":
-    #     from src.methods.stn_cnn.model import STNCNNModel
-    #     return STNCNNModel()
+    if name == "plain_cnn":
+        # Lazy import — pulling in plain_cnn.model triggers the heavy
+        # TensorFlow import, which must happen ONLY when plain_cnn is
+        # actually requested (so rf_hog runs stay TF-free and fast).
+        from src.methods.plain_cnn.model import PlainCNNModel
+        return PlainCNNModel()
+
+    # The stn_cnn branch is intentionally still ABSENT — src/methods/stn_cnn/
+    # model.py is a bare stub; importing it would raise. It arrives in Phase 6.
 
     raise ValueError(
-        f"Unknown method '{name}'. Available: rf_hog "
-        f"(plain_cnn, stn_cnn arrive in Phases 5-6)."
+        f"Unknown method '{name}'. Available: rf_hog, plain_cnn "
+        f"(stn_cnn arrives in Phase 6)."
     )

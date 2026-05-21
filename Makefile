@@ -17,6 +17,17 @@ GTSRB_ZIP ?= traffic-signs-data.zip
 GTSRB_URL := https://d17h27t6h515a5.cloudfront.net/topher/2017/February/5898cd6f_traffic-signs-data/traffic-signs-data.zip
 # ----------------------------------------------------------------------------
 
+# --- GPU: TensorFlow's pip-installed CUDA wheels are not on the dynamic-linker
+# path by default. Compute the nvidia/*/lib dirs and prepend them so every
+# recipe's child python process sees libcudnn/libcublas/etc. This MUST be set
+# BEFORE python starts — it cannot be fixed after `import tensorflow`. Declared
+# with `export` at file scope so it lands in EVERY recipe's environment in one
+# place (no per-recipe prefix to keep in sync). Harmless for CPU-only recipes
+# (rf_hog / data / setup ignore it).
+NVIDIA_LIBS := $(shell ls -d .venv/lib/python3.11/site-packages/nvidia/*/lib 2>/dev/null | tr '\n' ':')
+export LD_LIBRARY_PATH := $(NVIDIA_LIBS)$(LD_LIBRARY_PATH)
+# ----------------------------------------------------------------------------
+
 setup:
 	@PINNED=$$(cat .python-version); \
 	ACTUAL=$$(python --version 2>&1 | awk '{print $$2}'); \
@@ -59,7 +70,7 @@ train-rf:
 	uv run python -m src.runners.train --method rf_hog
 
 train-cnn:
-	@echo "TODO: train-cnn"
+	uv run python -m src.runners.train --method plain_cnn
 
 train-stn:
 	@echo "TODO: train-stn"
@@ -67,11 +78,12 @@ train-stn:
 train-all:
 	@echo "TODO: train-all"
 
-# Phase 4: only rf_hog exists, so --method rf_hog is hardcoded. Phases 5-6 will
-# EDIT this recipe to also run plain_cnn/stn_cnn (editing a recipe is not adding
-# a target — DEC-005-compliant).
+# Phase 5: rf_hog + plain_cnn both exist, so this recipe runs both sequentially.
+# Phase 6 appends a third (stn_cnn) line. Editing a recipe is not adding a
+# target — DEC-005-compliant.
 eval-gtsrb:
 	uv run python -m src.runners.eval_gtsrb --method rf_hog
+	uv run python -m src.runners.eval_gtsrb --method plain_cnn
 
 eval-taiwan:
 	@echo "TODO: eval-taiwan"

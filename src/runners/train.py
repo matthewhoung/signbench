@@ -43,10 +43,16 @@ def main():
     model.save(f"models/{args.method}{model.MODEL_EXT}")
 
     os.makedirs(f"analysis/{args.method}", exist_ok=True)
-    # Slice history to only the [0,1]-valued keys before plotting — passing
-    # n_features (1764) / n_estimators (500) would clip the fixed [0,1] y-axis
-    # of the single-point bar chart (Pitfall 4).
-    curve = {k: history[k] for k in ("train_acc", "val_acc") if k in history}
+    # Route the history by shape. plot_training_curves auto-detects epoch-keyed
+    # vs single-point via _is_epoch_keyed, so the CNN's epoch-keyed History
+    # (any list-valued key — accuracy/val_accuracy/loss/val_loss) is passed
+    # through WHOLE to the two-subplot accuracy/loss plot. The RF single-point
+    # history is still sliced to ("train_acc", "val_acc") so n_features (1764) /
+    # n_estimators (500) cannot clip the bar chart's fixed [0,1] y-axis (Pitfall 4).
+    if any(isinstance(v, list) for v in history.values()):
+        curve = history
+    else:
+        curve = {k: history[k] for k in ("train_acc", "val_acc") if k in history}
     plot_training_curves(curve, f"analysis/{args.method}/training_curves.png")
 
     print(f"train: {args.method} done — history={history}")
