@@ -56,7 +56,7 @@ data:
 		{ echo "data FAILED: one or more pickles missing."; exit 1; }
 
 train-rf:
-	@echo "TODO: train-rf"
+	uv run python -m src.runners.train --method rf_hog
 
 train-cnn:
 	@echo "TODO: train-cnn"
@@ -67,8 +67,11 @@ train-stn:
 train-all:
 	@echo "TODO: train-all"
 
+# Phase 4: only rf_hog exists, so --method rf_hog is hardcoded. Phases 5-6 will
+# EDIT this recipe to also run plain_cnn/stn_cnn (editing a recipe is not adding
+# a target — DEC-005-compliant).
 eval-gtsrb:
-	@echo "TODO: eval-gtsrb"
+	uv run python -m src.runners.eval_gtsrb --method rf_hog
 
 eval-taiwan:
 	@echo "TODO: eval-taiwan"

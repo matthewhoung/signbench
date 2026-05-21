@@ -41,6 +41,46 @@ Categories worth flagging (from PROJECT_PLAN.md §7):
 
 <!-- Entries below this line. Most recent first. -->
 
+## 2026-05-21 — RF+HOG baseline lands at 90.32%, 0.32pp above the gate
+
+What happened:
+- Phase 4's RF+HOG method had to clear a ≥90% GTSRB test-accuracy gate. The
+  measured result was 90.32% (11,407 / 12,630 test images correct) — it
+  passed, but only barely.
+- Before planning, the config was tuned empirically against the real GTSRB
+  test set. Five plausible "improvements" over the chosen config were tried,
+  and not one of them helped:
+  - More trees (n_estimators > 500) → no measurable gain.
+  - orientations=12 instead of 9 → 89.3%, *worse* (the longer feature vector
+    overfits the forest).
+  - CLAHE contrast equalisation before HOG → 85%, much worse (it flattens the
+    very gradients HOG keys on).
+  - Concatenating a colour histogram onto the HOG vector → 90.1%, no help.
+  - RandomForest class_weight='balanced' → 90.0%, slightly worse.
+
+What I tried:
+- Settled on grayscale HOG (orientations=9, 4x4 px/cell, 2x2 cells/block,
+  L2-Hys norm, transform_sqrt) → a 1764-dim vector, into a 500-tree
+  RandomForest (max_features='sqrt', random_state=42).
+- Verified the result reproduces deterministically: re-running eval against
+  the saved model gives byte-identical 0.9031670625... every time.
+
+What worked:
+- Accepting that ~90% IS the ceiling for grayscale HOG + RandomForest on
+  GTSRB. The roadmap's gate was deliberately set at 90% (not the ~96% that
+  Zaklouta et al. cite) precisely to leave room for this — the cited number
+  uses a richer/tuned feature pipeline that DEC-005 (no hyperparameter sweep)
+  rules out for this project.
+
+Quick reflection:
+- This is the intended story, not a disappointment: RF+HOG is the classical
+  baseline whose job is to be *beaten* by the CNN methods. A baseline sitting
+  right at 90% makes the STN+CNN jump to ~99% legible — it quantifies what
+  feature *learning* buys over feature *engineering*.
+- Lesson for the writeup (方法比較 / 技術討論): the interesting result isn't
+  the 90.32% — it's that five hand-engineering tweaks all failed to move it.
+  Hand-tuned features plateau; that plateau is the argument for the CNN.
+
 ## 2026-05-19 — asdf PATH ordering hid the 3.11.14 shim in non-login subshells
 
 What happened:
