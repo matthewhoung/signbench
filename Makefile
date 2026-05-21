@@ -73,10 +73,12 @@ train-cnn:
 	uv run python -m src.runners.train --method plain_cnn
 
 train-stn:
-	@echo "TODO: train-stn"
+	uv run python -m src.runners.train --method stn_cnn
 
-train-all:
-	@echo "TODO: train-all"
+# Phase 6: all three trainers now exist, so train-all chains them
+# (PROJECT_PLAN.md §5 — "all three of the above"). Editing a stub recipe is
+# not adding a target — train-all is already in the .PHONY 13-target list.
+train-all: train-rf train-cnn train-stn
 
 # Phase 5: rf_hog + plain_cnn both exist, so this recipe runs both sequentially.
 # Phase 6 appends a third (stn_cnn) line. Editing a recipe is not adding a
@@ -84,6 +86,7 @@ train-all:
 eval-gtsrb:
 	uv run python -m src.runners.eval_gtsrb --method rf_hog
 	uv run python -m src.runners.eval_gtsrb --method plain_cnn
+	uv run python -m src.runners.eval_gtsrb --method stn_cnn
 
 eval-taiwan:
 	@echo "TODO: eval-taiwan"

@@ -1,1 +1,5 @@
-"""STN + CNN hero method. Filled in Phase 6."""
+"""STN + CNN hero method — re-exports STNCNNModel."""
+
+from src.methods.stn_cnn.model import STNCNNModel
+
+__all__ = ["STNCNNModel"]

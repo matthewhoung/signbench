@@ -31,10 +31,12 @@ def get_method(name: str) -> ModelStrategy:
         from src.methods.plain_cnn.model import PlainCNNModel
         return PlainCNNModel()
 
-    # The stn_cnn branch is intentionally still ABSENT — src/methods/stn_cnn/
-    # model.py is a bare stub; importing it would raise. It arrives in Phase 6.
+    if name == "stn_cnn":
+        # Lazy import — same reasoning as plain_cnn: importing stn_cnn.model
+        # pulls in TensorFlow + the custom STNLayer; defer until requested.
+        from src.methods.stn_cnn.model import STNCNNModel
+        return STNCNNModel()
 
     raise ValueError(
-        f"Unknown method '{name}'. Available: rf_hog, plain_cnn "
-        f"(stn_cnn arrives in Phase 6)."
+        f"Unknown method '{name}'. Available: rf_hog, plain_cnn, stn_cnn."
     )

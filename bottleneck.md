@@ -41,6 +41,101 @@ Categories worth flagging (from PROJECT_PLAN.md §7):
 
 <!-- Entries below this line. Most recent first. -->
 
+## 2026-05-21 — STN hero model: a custom-layer serialization landmine and a misleading sampler check
+
+What happened:
+- The STN+CNN hero model cleared the 98% gate at 98.40% test accuracy,
+  completing the method ladder: RF+HOG 90.32% < plain CNN 96.55% <
+  STN+CNN 98.40%. But the spatial transformer custom layer surfaced two
+  real gotchas worth recording.
+- **Landmine 1 — custom-layer serialization.** The natural port of the
+  reference STN builds the localization sub-network lazily inside the
+  layer's `build()` method. It trains perfectly. Then
+  `keras.models.load_model('stn_cnn.keras')` throws "Layer was never
+  built" — which would silently break `make eval-gtsrb` (eval loads the
+  saved model). A model that trains fine but can't be reloaded is the
+  worst kind of bug: invisible until the next phase.
+- **Landmine 2 — a sampler sanity check that lied.** The bilinear
+  sampler's identity-transform smoke test fed random-noise images and
+  asserted the STN output matches the input within 1e-3. It measured
+  5.9e-3 and "failed" — even though the affine matrix `theta` was
+  *exactly* the identity `[1,0,0,0,1,0]`.
+
+What I tried:
+- Landmine 1: traced the load failure to Keras 3 not knowing how to
+  rebuild a sub-layer that was never explicitly built. Confirmed a
+  bare `register_keras_serializable` + `get_config` was not enough.
+- Landmine 2: checked `theta` directly — exactly identity. Checked the
+  sampled grid coordinates — they land on integer pixels within 1.9e-6.
+  So the layer was correct; the *test* was wrong.
+
+What worked:
+- Landmine 1: three things together — (a) create the localization-net
+  `Sequential` in the layer's `__init__`, not `build()`; (b) explicitly
+  call `self.loc.build(input_shape)` inside the layer's `build()`;
+  (c) `@keras.saving.register_keras_serializable()` + `get_config()`.
+  With all three, save/load round-trips with diff 0.0 — verified.
+- Landmine 2: the 5.9e-3 is bilinear round-off *amplified by the noise
+  image's maximal pixel-to-pixel gaps* — adjacent random pixels differ
+  by up to 1.0, so a sub-pixel coordinate slip of 6e-3 reads as a 6e-3
+  output error. Re-ran the same identity check on a smooth GTSRB-like
+  image: max error 1.1e-4, comfortably inside the bar. The fix was to
+  the test input, not the layer (which is verbatim-correct).
+
+Quick reflection:
+- For the 系統設計 writeup: a custom Keras layer with a learned
+  sub-network is not "free" to serialize. Build the children eagerly
+  and build them explicitly — the lazy-build pattern that works for
+  training quietly breaks deserialization.
+- For 技術討論: when a numerical sanity check fails, ask whether the
+  *test stimulus* is adversarial before touching the implementation.
+  Random noise is the worst case for any interpolation tolerance; a
+  realistic input is the honest one. The STN was right the whole time.
+- Identity-initialising the localization net (`Dense(6)` with zero
+  kernel and bias `[1,0,0,0,1,0]`) is non-negotiable — without it the
+  STN starts by mangling the image and training never recovers.
+
+## 2026-05-21 — TensorFlow couldn't see the GPU despite a working NVIDIA driver
+
+What happened:
+- Before planning Phase 5 (the first phase that trains a neural net),
+  `tf.config.list_physical_devices('GPU')` returned `[]` — TensorFlow 2.21
+  was about to fall back to CPU on a machine that has an RTX 4060.
+- `nvidia-smi` worked fine (driver 591.74, CUDA 13.1, WSL2 passthrough OK),
+  so the hardware and Windows driver were not the problem.
+
+What I tried:
+- Confirmed the GPU is visible to WSL2: `nvidia-smi` lists the RTX 4060,
+  `/usr/lib/wsl/lib/libcuda.so` is present.
+- Checked the venv: only plain `tensorflow` was installed — zero `nvidia-*`
+  CUDA runtime packages. TF 2.21 needs cuDNN/cuBLAS/cuFFT/etc. as separate
+  pip wheels.
+- Ran `uv add 'tensorflow[and-cuda]'` — pulled 12 `nvidia-*-cu12` wheels
+  (cuDNN 9, cuBLAS 12.9, …). TF *still* reported no GPU:
+  "Cannot dlopen some GPU libraries."
+- Inspected the wheel layout: the `.so` files land in
+  `.venv/.../site-packages/nvidia/<pkg>/lib/`, but nothing adds those
+  directories to the dynamic linker search path.
+
+What worked:
+- Setting `LD_LIBRARY_PATH` to the colon-joined list of every
+  `site-packages/nvidia/*/lib` directory before launching Python. TF then
+  reports `GPU:0` (RTX 4060 Laptop, compute capability 8.9, ~5.5 GB usable)
+  and a test `tf.matmul` runs on `/device:GPU:0`.
+- This will be wired into the Makefile (the orchestration layer) so
+  `make train-cnn` / `train-stn` / `eval-gtsrb` get the GPU automatically —
+  the runners stay CUDA-agnostic.
+
+Quick reflection:
+- Two separate gaps stacked: (1) the CUDA *runtime* wheels were never
+  installed (`tensorflow` vs `tensorflow[and-cuda]`), and (2) even once
+  installed, pip-wheel CUDA libs aren't on the loader path by default.
+  Fixing only the first hides the second — the second failure looks
+  identical to the first ("can't dlopen").
+- A working `nvidia-smi` only proves the *driver* layer. The CUDA
+  *runtime* (cuDNN et al.) is a separate userspace dependency the Python
+  env owns. Worth stating plainly in the 系統設計 writeup.
+
 ## 2026-05-21 — RF+HOG baseline lands at 90.32%, 0.32pp above the gate
 
 What happened:
