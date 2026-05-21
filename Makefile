@@ -89,7 +89,7 @@ eval-gtsrb:
 	uv run python -m src.runners.eval_gtsrb --method stn_cnn
 
 eval-taiwan:
-	@echo "TODO: eval-taiwan"
+	uv run python -m src.runners.eval_taiwan
 
 report:
 	@echo "TODO: report"

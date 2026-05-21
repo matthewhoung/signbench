@@ -41,6 +41,57 @@ Categories worth flagging (from PROJECT_PLAN.md §7):
 
 <!-- Entries below this line. Most recent first. -->
 
+## 2026-05-21 — Taiwan domain shift: GTSRB accuracy did not predict transfer behaviour
+
+What happened:
+- Ran all three trained models over 8 real Taiwan traffic signs (4
+  "universal" signs that map to a GTSRB class, 4 Taiwan-unique "OOD"
+  signs with no GTSRB equivalent). The result inverts the GTSRB
+  ranking in the way that matters most.
+- Universal signs correct: rf_hog 2/4, plain_cnn 3/4, stn_cnn 2/4.
+  All three read `no_entry` and `yield` correctly; `speed_60` defeated
+  every model (the CNNs confidently call it 80, not 60); the hero
+  STN+CNN confidently mislabels the 「停」 stop sign as "Priority road"
+  at 0.99.
+- OOD signs — none can be "correct" (no GTSRB class fits), so the
+  story is *confidence*, not accuracy:
+  - rf_hog — mean confidence **0.13**. The model is appropriately
+    uncertain on signs it has never seen.
+  - plain_cnn — mean confidence **0.91**. Confident, and wrong every
+    time. Classic deep-network overconfidence on out-of-distribution
+    input.
+  - stn_cnn — mean confidence **0.65**, mixed: 0.9999 sure that a
+    Chinese one-way sign is "Ahead only", but only 0.15 on the
+    scooter two-stage-left-turn sign.
+
+What I tried:
+- Nothing "broke" — this is the phase's intended probe. The work was
+  reading the result honestly rather than treating low Taiwan
+  accuracy as a bug to fix (DEC-005 / PROJECT_PLAN §9: the point is to
+  *measure* domain transfer, not to fix it by training on Taiwan).
+
+What worked:
+- Reporting confidence alongside the prediction. Accuracy alone would
+  have said "all three models are bad at Taiwan signs, the end."
+  Confidence reveals the real difference: the *weakest* model on
+  GTSRB (RF+HOG, 90.32%) is the *safest* under domain shift — its
+  confidence collapses to 0.13 on unseen signs, which a downstream
+  system could threshold on. The *best* GTSRB model that is a plain
+  CNN (96.55%) is the *worst* domain-transfer citizen — 0.91-confident
+  garbage gives a downstream system no signal that anything is wrong.
+
+Quick reflection (for the 技術討論 section — this is the headline):
+- Higher in-distribution accuracy did not buy better out-of-
+  distribution behaviour. The GTSRB leaderboard
+  (rf_hog < plain_cnn < stn_cnn) does not survive the move to Taiwan.
+- The STN helps with *geometry* (rotated/skewed signs) but the STN
+  cannot invent a class that was never in the 43-class training set —
+  a 「慢」 sign has no right answer to rectify toward.
+- Calibration is a separate axis from accuracy. A model that knows
+  when it doesn't know is worth more, under domain shift, than a
+  model that is slightly more accurate in-distribution. The classical
+  RF+HOG baseline accidentally demonstrates this best.
+
 ## 2026-05-21 — STN hero model: a custom-layer serialization landmine and a misleading sampler check
 
 What happened:
