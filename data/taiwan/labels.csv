@@ -1,0 +1,9 @@
+filename,gtsrb_class_id_or_OOD,notes
+01_stop.png,14,universal - red octagon stop
+02_no_entry.png,17,universal - red circle white bar
+03_speed_60.png,3,universal - red ring speed limit 60
+04_yield.png,13,universal - inverted red triangle yield
+05_slow.png,OOD,taiwan-unique - chinese text slow
+06_scooter_two_stage.png,OOD,taiwan-unique - scooter two-stage left turn
+07_pedestrian_diamond.png,OOD,taiwan-unique - yellow diamond pedestrian warning
+08_one_way.png,OOD,taiwan-unique - chinese one-way sign

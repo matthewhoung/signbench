@@ -220,16 +220,18 @@ __marimo__/
 # GSD planning workspace (local-only; not shared with reviewers)
 .planning/
 
-# signbench: phase-1 carveouts — keep dirs (via .gitkeep) but ignore their contents
+# signbench: ignore large/regenerable inputs — keep dirs (via .gitkeep)
+#   data/gtsrb/   — 159 MB GTSRB pickles, re-extractable via `make data`
+#   traffic-signs-data.zip — 123 MB provisioning input, never committed
+#   reference/    — ~70 MB cloned repo, re-clonable via `make clone-reference`
+#   models/       — large trained weights (rf_hog.pkl 129 MB, *.keras), re-trainable
 data/gtsrb/*
 !data/gtsrb/.gitkeep
-# signbench: phase-3 — the 123 MB GTSRB zip is provisioning input, never committed
 traffic-signs-data.zip
-data/taiwan/images/*
-!data/taiwan/images/.gitkeep
 reference/*
 !reference/.gitkeep
 models/*
 !models/.gitkeep
-analysis/*
-!analysis/.gitkeep
+
+# signbench: data/taiwan/images/ and analysis/ ARE tracked — the Taiwan photos
+# are hand-collected (not reproducible) and analysis/ holds the rubric deliverables.
