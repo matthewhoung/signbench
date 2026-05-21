@@ -223,6 +223,8 @@ __marimo__/
 # signbench: phase-1 carveouts — keep dirs (via .gitkeep) but ignore their contents
 data/gtsrb/*
 !data/gtsrb/.gitkeep
+# signbench: phase-3 — the 123 MB GTSRB zip is provisioning input, never committed
+traffic-signs-data.zip
 data/taiwan/images/*
 !data/taiwan/images/.gitkeep
 reference/*

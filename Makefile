@@ -5,6 +5,18 @@
 .PHONY: setup clone-reference data train-rf train-cnn train-stn train-all eval-gtsrb eval-taiwan report all clean clean-all
 .DEFAULT_GOAL := setup
 
+# --- Phase 3 provisioning variables -----------------------------------------
+# clone-reference: read-only architectural source of truth (DEC-004).
+REFERENCE_REPO := https://github.com/hello2all/GTSRB_Keras_STN.git
+REFERENCE_DIR  := reference/GTSRB_Keras_STN
+
+# data: GTSRB pickles. GTSRB_ZIP is overridable — e.g.
+#   make data GTSRB_ZIP=/mnt/c/Users/Matt/Downloads/traffic-signs-data.zip
+GTSRB_DIR := data/gtsrb
+GTSRB_ZIP ?= traffic-signs-data.zip
+GTSRB_URL := https://d17h27t6h515a5.cloudfront.net/topher/2017/February/5898cd6f_traffic-signs-data/traffic-signs-data.zip
+# ----------------------------------------------------------------------------
+
 setup:
 	@PINNED=$$(cat .python-version); \
 	ACTUAL=$$(python --version 2>&1 | awk '{print $$2}'); \
@@ -17,10 +29,31 @@ setup:
 	uv sync
 
 clone-reference:
-	@echo "TODO: clone-reference"
+	@if [ -d "$(REFERENCE_DIR)/.git" ]; then \
+		echo "Reference repo already present at $(REFERENCE_DIR)/ — skipping (DEC-004: read-only)."; \
+	else \
+		echo "Cloning $(REFERENCE_REPO) (shallow, read-only)..."; \
+		git clone --depth 1 "$(REFERENCE_REPO)" "$(REFERENCE_DIR)"; \
+	fi
+	@test -f "$(REFERENCE_DIR)/README.md" && \
+		echo "clone-reference OK: $(REFERENCE_DIR)/ present." || \
+		{ echo "clone-reference FAILED: expected files missing."; exit 1; }
 
 data:
-	@echo "TODO: data"
+	@if [ -f "$(GTSRB_DIR)/train.p" ] && [ -f "$(GTSRB_DIR)/valid.p" ] && [ -f "$(GTSRB_DIR)/test.p" ]; then \
+		echo "GTSRB pickles already present in $(GTSRB_DIR)/ — skipping."; \
+	else \
+		if [ ! -f "$(GTSRB_ZIP)" ]; then \
+			echo "Local zip $(GTSRB_ZIP) not found — downloading from Udacity CloudFront..."; \
+			curl -L -o "$(GTSRB_ZIP)" "$(GTSRB_URL)"; \
+		fi; \
+		echo "Extracting $(GTSRB_ZIP) into $(GTSRB_DIR)/ ..."; \
+		mkdir -p "$(GTSRB_DIR)"; \
+		unzip -o "$(GTSRB_ZIP)" -d "$(GTSRB_DIR)"; \
+	fi
+	@test -f "$(GTSRB_DIR)/train.p" && test -f "$(GTSRB_DIR)/valid.p" && test -f "$(GTSRB_DIR)/test.p" && \
+		echo "data OK: train.p valid.p test.p present in $(GTSRB_DIR)/." || \
+		{ echo "data FAILED: one or more pickles missing."; exit 1; }
 
 train-rf:
 	@echo "TODO: train-rf"
