@@ -1,3 +1,3 @@
 rf_hog: 2/4 universal-class signs correct, 4/4 OOD signs predicted as Children crossing, Yield, Road work, Ahead only (mean confidence 0.13)
-plain_cnn: 3/4 universal-class signs correct, 4/4 OOD signs predicted as Beware of ice/snow, Keep left, Pedestrians, Ahead only (mean confidence 0.91)
-stn_cnn: 2/4 universal-class signs correct, 4/4 OOD signs predicted as Right-of-way at the next intersection, Go straight or left, Pedestrians, Ahead only (mean confidence 0.65)
+plain_cnn: 3/4 universal-class signs correct, 4/4 OOD signs predicted as Beware of ice/snow, Speed limit (50km/h), Pedestrians, Turn left ahead (mean confidence 0.93)
+stn_cnn: 3/4 universal-class signs correct, 4/4 OOD signs predicted as Beware of ice/snow, Roundabout mandatory, Pedestrians, Ahead only (mean confidence 0.59)
