@@ -14,6 +14,8 @@ import json
 import os
 
 from src.common.data_loader import load_gtsrb
+from sklearn.metrics import classification_report
+
 from src.common.evaluate import (
     classification_report_text,
     compute_metrics,
@@ -60,6 +62,20 @@ def main():
     plot_confusion_matrix(yte, preds, f"{out}/confusion_matrix.png")
     with open(f"{out}/classification_report.txt", "w") as fp:
         fp.write(classification_report_text(yte, preds))
+
+    # Structured per-class accuracy for Phase 8's per_class_accuracy.png heatmap.
+    # sklearn's output_dict form of the same report eval already writes as text;
+    # per-class `recall` == per-class accuracy for a single-label problem.
+    # Iterate class ids 0..42 so a class with zero test support still gets a key.
+    report_dict = classification_report(
+        yte, preds, output_dict=True, zero_division=0
+    )
+    per_class = {
+        str(cid): float(report_dict.get(str(cid), {}).get("recall", 0.0))
+        for cid in range(43)
+    }
+    with open(f"{out}/per_class.json", "w") as fp:
+        json.dump({"method": args.method, "per_class": per_class}, fp, indent=2)
 
     # NO accuracy assertion, NO non-zero exit on a low score — always exit 0.
     print(f"eval-gtsrb: {args.method} done — accuracy={metrics['accuracy']:.4f}")

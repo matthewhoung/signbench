@@ -41,6 +41,49 @@ Categories worth flagging (from PROJECT_PLAN.md §7):
 
 <!-- Entries below this line. Most recent first. -->
 
+## 2026-05-22 — Cross-method report forced a full retrain because training history was never persisted
+
+What happened:
+- Phase 8 needed a `loss_comparison.png` plot covering the two CNN
+  methods. The data for those curves — per-epoch loss/val_loss — had
+  never been saved. The earlier phases plotted `training_curves.png`
+  (an image) from the in-memory `fit()` history dict and then dropped
+  the dict.
+- A pre-planning recon caught this before the planner started, so the
+  plan added a small change to `train.py` to also dump
+  `analysis/<method>/training_history.json` alongside the existing
+  PNG. The catch: the new JSONs only materialise on the next retrain.
+- `make all` is required to run end-to-end anyway (Phase 8 criterion
+  #3), so the retrain happens "for free" — but free here means a
+  ~28-minute wall-time bill, dominated by the STN's 40-epoch run.
+
+What I tried:
+- Considered reconstructing loss curves from anything on disk. There
+  was nothing — the PNGs are bitmaps and the model files (`.keras`)
+  don't carry training history. The data had to be regenerated.
+- Considered exempting `loss_comparison.png` from the gate. No — the
+  rubric's 方法比較 section needs it.
+
+What worked:
+- One additive line in `train.py` (dump `history` as JSON), plus the
+  `make all` retrain. Came back with rf_hog 0.9032 (byte-identical,
+  deterministic), plain_cnn 0.9678 (+0.2pp drift from Phase 5),
+  stn_cnn 0.9899 (+0.6pp drift from Phase 6) — all still over their
+  gates. GPU nondeterminism, expected and benign.
+
+Quick reflection (for 技術討論):
+- The recoverable lesson is about *data persistence vs. visualisation
+  persistence*. An image is a one-way render — it cannot be re-mined
+  later. Whenever a downstream phase might want different cuts of the
+  same data, save the data, then derive the visualisation. The
+  marginal cost is a tiny JSON; the cost of not doing it is a 28-min
+  retrain (and, in a world without a deterministic seed, irreproducible
+  numbers).
+- Same lesson applied to `eval_gtsrb`: per-class accuracy was only in
+  the formatted `classification_report.txt` text file. Phase 8 added
+  a structured `per_class.json` for the heatmap. Same shape of fix,
+  same shape of reasoning.
+
 ## 2026-05-21 — Taiwan domain shift: GTSRB accuracy did not predict transfer behaviour
 
 What happened:

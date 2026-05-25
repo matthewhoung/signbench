@@ -10,6 +10,7 @@ third-party CLI frameworks are disallowed (DEC-005 / PROJECT_PLAN.md §9).
 """
 
 import argparse
+import json
 import os
 
 from src.common.data_loader import load_gtsrb
@@ -43,6 +44,14 @@ def main():
     model.save(f"models/{args.method}{model.MODEL_EXT}")
 
     os.makedirs(f"analysis/{args.method}", exist_ok=True)
+    # Persist the FULL fit() history dict — unchanged, all keys — so Phase 8's
+    # report.py has epoch-by-epoch loss data for loss_comparison.png (CNNs) and
+    # the single-point dict for rf_hog. Write the WHOLE `history`, NOT the
+    # shape-routed `curve` below: `curve` strips rf_hog's n_features/n_estimators
+    # and exists only for the plot's fixed [0,1] y-axis.
+    with open(f"analysis/{args.method}/training_history.json", "w") as fp:
+        json.dump(history, fp, indent=2)
+
     # Route the history by shape. plot_training_curves auto-detects epoch-keyed
     # vs single-point via _is_epoch_keyed, so the CNN's epoch-keyed History
     # (any list-valued key — accuracy/val_accuracy/loss/val_loss) is passed

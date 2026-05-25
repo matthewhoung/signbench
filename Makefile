@@ -91,11 +91,19 @@ eval-gtsrb:
 eval-taiwan:
 	uv run python -m src.runners.eval_taiwan
 
+# Phase 8: report.py exists, so this recipe runs the cross-method aggregation.
+# Editing a stub recipe is not adding a target — report is already in the
+# .PHONY 13-target list (DEC-005).
 report:
-	@echo "TODO: report"
+	uv run python -m src.runners.report
 
-all:
-	@echo "TODO: all"
+# Phase 8: full pipeline. `all` chains the five sub-targets in dependency order
+# (PROJECT_PLAN.md §5: data -> train-all -> eval-gtsrb -> eval-taiwan -> report),
+# mirroring how train-all chains its three trainers as prerequisites. The
+# file-scope `export LD_LIBRARY_PATH` already covers every recipe's child
+# process, so the CNN/STN retrains inside train-all get the GPU. Editing a stub
+# recipe is not adding a target — all is already in the .PHONY 13-target list.
+all: data train-all eval-gtsrb eval-taiwan report
 
 clean:
 	@echo "TODO: clean"
