@@ -23,3 +23,6 @@
 # derivable, never committed.
 analysis/
 analysis_for_agent/
+
+# Personal editing notepad — kept on disk, not in git history.
+revision-notes.md

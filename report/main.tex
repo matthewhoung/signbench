@@ -11,10 +11,16 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{array}
 \usepackage{caption}
+\usepackage{amsmath}
 \usepackage{hyperref}
 \usepackage{xcolor}
 \usepackage{listings}
+\usepackage{microtype}
+\setlength{\emergencystretch}{3em}
+\hbadness=10000
+\hfuzz=10pt
 
 % Figures live in analysis/. Both modes work via \graphicspath:
 %   * Local development: figures come from the project's ../analysis/ tree.
@@ -51,15 +57,14 @@
   signbench: Reproducing CNN+STN for GTSRB,\\
   with a Taiwan Domain-Transfer Probe
 }
-\author{Matthew Hong}                              % TODO: confirm name / add student ID / course info
-\date{\today}                                      % TODO: replace with submission date if needed
+\author{HONG YU HENG - 5113050021}
+\date{\today}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-% TODO (Matthew): rewrite in your voice. A 4-5 sentence draft below.
-We reproduce a Spatial-Transformer-Network (STN) traffic-sign classifier inspired by~\cite{jaderberg2015stn,hello2allgtsrb} on a clean Python~3.11 / TensorFlow~2.21 stack, and compare it against two ablations: a Random Forest on Histogram-of-Oriented-Gradients features~\cite{dalal2005hog,zaklouta2011realtime}, and a vanilla CNN. On the German Traffic Sign Recognition Benchmark (GTSRB)~\cite{stallkamp2012gtsrb}, all three methods clear their pre-registered accuracy gates: 90.32\% (RF+HOG), 96.78\% (plain CNN), and 98.99\% (STN+CNN). We further probe domain transfer by running the three trained models on a small set of locally-photographed Taiwan traffic signs (four ``universal'' signs that map to a GTSRB class, four Taiwan-unique out-of-distribution signs). The headline finding is that the GTSRB accuracy ranking \emph{inverts} on the calibration axis: the weakest in-distribution model (RF+HOG) is the safest out-of-distribution citizen — its softmax-equivalent confidence collapses to 0.13 on unseen Taiwan signs, while the plain CNN remains 0.93-confident and wrong. Higher in-distribution accuracy did not predict better domain-transfer behaviour; calibration is a separate axis.
+This project reproduces a Spatial-Transformer-Network (STN) traffic-sign classifier inspired by~\cite{jaderberg2015stn,hello2allgtsrb} on a clean Python~3.11 / TensorFlow~2.21 stack, and compares it against two ablations: a Random Forest on Histogram-of-Oriented-Gradients features~\cite{dalal2005hog,zaklouta2011realtime} and a vanilla CNN. On the German Traffic Sign Recognition Benchmark (GTSRB)~\cite{stallkamp2012gtsrb}, all three methods clear their pre-registered accuracy gates: 90.32\% (RF+HOG), 96.78\% (plain CNN), and 98.99\% (STN+CNN). A domain-transfer probe then runs the three trained models over a small set of locally-photographed Taiwan traffic signs — four ``universal'' signs that map to a GTSRB class and four Taiwan-unique out-of-distribution signs. The headline finding is that the GTSRB ranking \emph{inverts} on the calibration axis: the weakest in-distribution model (RF+HOG) is the safest out-of-distribution citizen, its softmax-equivalent confidence collapsing to 0.13 on unseen Taiwan signs, while the plain CNN remains 0.93-confident and wrong on every one. Higher in-distribution accuracy did not predict better domain-transfer behaviour; calibration is a separate axis.
 \end{abstract}
 
 % =====================================================================
@@ -78,11 +83,12 @@ Three methods sit behind that contract (Table~\ref{tab:methods}):
   \item \textbf{STN + CNN (hero)} — the full architecture inspired by~\cite{jaderberg2015stn}, with a learned $1\!\times\!1$-convolution colour transform between the STN and the deep classifier.
 \end{itemize}
 
-\begin{table}[h]
+\begin{table}[htbp]
 \centering
 \caption{The three methods, behind a uniform \texttt{ModelStrategy} contract.}
 \label{tab:methods}
-\begin{tabular}{lll}
+\small
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.16\textwidth}>{\raggedright\arraybackslash}p{0.36\textwidth}>{\raggedright\arraybackslash}p{0.38\textwidth}@{}}
 \toprule
 Method      & Feature side                         & Decision side \\
 \midrule
@@ -111,11 +117,6 @@ The localisation network's final \texttt{Dense(6)} layer is initialised to the \
 
 \paragraph{Classifier.} A deep stack of convolutional blocks follows — the same reference architecture as~\cite{hello2allgtsrb}, which is load-bearing for clearing the 98\% gate; a lighter 3-block classifier (the obvious shortcut from the plain CNN) tops out at $\sim$96\% and misses.
 
-% TODO (Matthew): consider including a small architecture diagram here.
-% Either include analysis/stn_cnn/stn_visualization.png as the qualitative
-% evidence of what the STN does (before/after rectification), or sketch the
-% data-flow figure by hand.
-
 \subsection{Loss Function and Optimisation}
 All three methods are trained as discriminative 43-class classifiers, but the loss surface differs:
 \begin{itemize}
@@ -125,7 +126,7 @@ All three methods are trained as discriminative 43-class classifiers, but the lo
 
 Training-history curves for the two CNN methods (Figure~\ref{fig:training-curves}) show smooth convergence with no overfitting collapse on either model.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \centering
 \begin{minipage}{0.48\textwidth}
   \centering
@@ -144,13 +145,13 @@ Training-history curves for the two CNN methods (Figure~\ref{fig:training-curves
 
 % =====================================================================
 \section{Method Comparison}
-\label{sec:comparison}
+\label{sec:method-comparison}
 % Rubric: 方法比較 — 5pt
 % Required: 加入其他 machine learning 方法比較 + 數據分析 (accuracy/loss)
 
 The three methods were trained and evaluated under identical splits (34,799 train / 4,410 validation / 12,630 test, all 43 GTSRB classes present in each split) and the same preprocessing pipeline (uint8 to $[0,1]$ float normalisation, no augmentation, no hyperparameter sweep). All three cleared their pre-registered accuracy gates on the GTSRB test set (Table~\ref{tab:final}).
 
-\begin{table}[h]
+\begin{table}[htbp]
 \centering
 \caption{Cross-method comparison on GTSRB and the Taiwan domain-transfer probe. ``Taiwan universal correct'' is the count of universal-class signs the method labels correctly (out of 4). ``Taiwan OOD mean confidence'' is the mean softmax confidence on out-of-distribution Taiwan-unique signs (4 images per method).}
 \label{tab:final}
@@ -169,7 +170,7 @@ stn\_cnn    & \textbf{0.9899} & \textbf{0.9904} & \textbf{0.9899} & \textbf{0.99
 \subsection{Aggregate Accuracy}
 Figure~\ref{fig:acc-comparison} reads off the headline ordering on GTSRB: feature \emph{learning} beats feature \emph{engineering} by $+6.5$~pp (rf\_hog $\to$ plain\_cnn), and adding the STN buys another $+2.2$~pp (plain\_cnn $\to$ stn\_cnn). The STN+CNN cleared its 98\% hero gate with a 0.99~pp margin; the plain CNN cleared the 95\% gate by 1.78~pp; the RF cleared the 90\% gate by 0.32~pp. This deliberately-narrow margin on the RF baseline is itself a finding (see Section~\ref{sec:tech-discussion}).
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=0.75\textwidth]{accuracy_comparison.png}
 \caption{GTSRB test accuracy across the three methods. All clear their pre-registered gates (RF 90\%, plain CNN 95\%, STN+CNN 98\%).}
@@ -179,7 +180,7 @@ Figure~\ref{fig:acc-comparison} reads off the headline ordering on GTSRB: featur
 \subsection{Convergence Behaviour}
 Figure~\ref{fig:loss-comparison} overlays the two CNN methods' loss curves (RF is excluded — it has no epochs). The STN+CNN converges to a lower validation loss than the plain CNN, consistent with its higher test accuracy; importantly, both curves are smooth — neither method shows overfitting collapse, justifying the no-early-stopping choice.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=0.75\textwidth]{loss_comparison.png}
 \caption{Training and validation loss for the two CNN methods. RF+HOG is excluded — it is not trained iteratively.}
@@ -194,11 +195,7 @@ Aggregate accuracy hides a lot. Figure~\ref{fig:per-class} shows per-class accur
   \item Easily-confused class pairs (the ``end-of'' signs 6/32/41/42, which are visually near-identical white circles with diagonal black strokes) are where the STN+CNN's improvement over the plain CNN concentrates.
 \end{itemize}
 
-% TODO (Matthew): if you want, pick one specific class where the STN clearly
-% wins over the plain CNN, look at analysis/{plain_cnn,stn_cnn}/per_class.json
-% for the exact numbers, and write a sentence about why STN helps there.
-
-\begin{figure}[h]
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{per_class_accuracy.png}
 \caption{Per-class accuracy heatmap (3 methods $\times$ 43 GTSRB classes). Darker $=$ higher accuracy.}
@@ -208,7 +205,7 @@ Aggregate accuracy hides a lot. Figure~\ref{fig:per-class} shows per-class accur
 \subsection{The STN at Work}
 The STN's qualitative contribution is visible in Figure~\ref{fig:stn-viz}: passing GTSRB test images through the trained STN sub-model produces a \emph{rectified} version of each input — rotated or skewed signs are geometrically straightened before reaching the classifier. This is the per-input feature alignment that the deep classifier alone cannot perform.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=0.85\textwidth]{stn_cnn/stn_visualization.png}
 \caption{STN before/after rectification on sample test images. The STN learns to undo per-image geometric variation before classification.}
@@ -267,20 +264,17 @@ The training runner originally rendered \texttt{training\_curves.png} from the \
 
 \subsection{Taiwan Domain Shift: GTSRB Accuracy Does Not Predict Transfer}
 \label{sec:domain-shift}
-The Taiwan probe ran all three trained models over 8 hand-collected Taiwan traffic signs (4 ``universal'' signs that map to a GTSRB class — stop, no-entry, speed limit 60, yield — and 4 Taiwan-unique out-of-distribution signs — Chinese-text ``\,慢\,'' (slow), the scooter two-stage left-turn sign, a yellow-diamond pedestrian warning, and a Chinese-text one-way sign). The cross-method visualisation is reproduced in Figure~\ref{fig:taiwan-grid}, and the per-method one-liners are:
+The Taiwan probe ran all three trained models over 8 hand-collected Taiwan traffic signs (4 ``universal'' signs that map to a GTSRB class — stop, no-entry, speed limit 60, yield — and 4 Taiwan-unique out-of-distribution signs — Chinese-text ``slow'', the scooter two-stage left-turn sign, a yellow-diamond pedestrian warning, and a Chinese-text one-way sign). The cross-method visualisation is reproduced in Figure~\ref{fig:taiwan-grid}, and the per-method one-liners are:
 
-\begin{quote}\small\ttfamily
-rf\_hog: 2/4 universal-class signs correct, 4/4 OOD signs predicted as\\
-\hspace*{2em}Children crossing, Yield, Road work, Ahead only (mean confidence 0.13)\\[2pt]
-plain\_cnn: 3/4 universal-class signs correct, 4/4 OOD signs predicted as\\
-\hspace*{2em}Beware of ice/snow, Speed limit (50km/h), Pedestrians, Turn left ahead (mean confidence 0.93)\\[2pt]
-stn\_cnn: 3/4 universal-class signs correct, 4/4 OOD signs predicted as\\
-\hspace*{2em}Beware of ice/snow, Roundabout mandatory, Pedestrians, Ahead only (mean confidence 0.59)
-\end{quote}
+\begin{itemize}
+  \item \textbf{rf\_hog}: 2/4 universal-class signs correct; OOD signs predicted as Children crossing, Yield, Road work, and Ahead only (mean confidence 0.13).
+  \item \textbf{plain\_cnn}: 3/4 universal-class signs correct; OOD signs predicted as Beware of ice/snow, Speed limit (50km/h), Pedestrians, and Turn left ahead (mean confidence 0.93).
+  \item \textbf{stn\_cnn}: 3/4 universal-class signs correct; OOD signs predicted as Beware of ice/snow, Roundabout mandatory, Pedestrians, and Ahead only (mean confidence 0.59).
+\end{itemize}
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \centering
-\includegraphics[width=0.95\textwidth]{taiwan/visualization_grid.png}
+\includegraphics[width=0.85\textwidth,height=0.7\textheight,keepaspectratio]{taiwan/visualization_grid.png}
 \caption{Taiwan domain-transfer probe. Rows are signs (4 universal, 4 OOD); columns are the three methods. Green $=$ correct (only meaningful for universal-class signs); red $=$ incorrect or out-of-distribution.}
 \label{fig:taiwan-grid}
 \end{figure}
@@ -294,30 +288,18 @@ Two findings stand out.
   \item \textbf{stn\_cnn} — mean confidence 0.59, mixed: $\sim$0.99 on the Chinese one-way sign (confident, wrong), but as low as $\sim$0.15 on the scooter two-stage-left-turn sign (uncertain, also wrong). The STN inherits the deep CNN's overconfidence on some inputs while being usefully unsure on others.
 \end{itemize}
 
-\paragraph{The STN cannot invent a class.} The STN helps with \emph{geometry}: a rotated or skewed sign is straightened before classification. But the STN cannot invent a class that was never in the 43-class training set. There is no ``slow'' class to rectify a ``\,慢\,'' sign toward; the network's job is to pick one of 43, and it does so confidently.
+\paragraph{The STN cannot invent a class.} The STN helps with \emph{geometry}: a rotated or skewed sign is straightened before classification. But the STN cannot invent a class that was never in the 43-class training set. There is no ``slow'' class to rectify a Chinese-text slow sign toward; the network's job is to pick one of 43, and it does so confidently.
 
 Together, these tell a single story: \emph{calibration is a separate axis from accuracy.} A model that knows when it does not know is worth more, under domain shift, than a model that is slightly more accurate in-distribution.
 
-% TODO (Matthew): close with one paragraph of personal reflection — what you'd
-% do differently, what surprised you, why the modular-monolith architecture
-% paid off (or didn't). The bottleneck.md file has more raw material if you want
-% to mine it. Keep it concrete, not generic.
+The personal surprise for me was the calibration inversion. Going in, I expected the STN+CNN to dominate on every axis I cared about — the GTSRB numbers read that way, and the architecture is straightforwardly more sophisticated. What the Taiwan probe revealed is that ``best model'' is not a single ranking; it depends on whether you are optimising for in-distribution accuracy or for honesty about out-of-distribution inputs. A plain CNN that is confidently wrong on every Taiwan-unique sign, with mean softmax 0.93, is the kind of failure that looks fine on a test-set dashboard and would be disastrous in deployment. In hindsight, I would have collected the Taiwan photos in Phase~4 rather than Phase~7 — having those eight images available the whole time would have surfaced this finding while the methods were still being built, instead of arriving as a clean retrospective story. The methodology lesson generalises: every supervised-learning project benefits from a small, deliberately-out-of-distribution probe set, sized so it can be re-run cheaply after each method lands.
 
 \subsection{Reflection on the Modular-Monolith Architecture}
-% TODO (Matthew): paragraph in your voice. Some points you could make
-% (use, polish, or replace):
-%  - The ModelStrategy ABC paid off because the same train.py / eval_gtsrb.py
-%    runners drove all three methods unchanged. Phase 5 (plain CNN) reused
-%    Phase 4's runner with one line changed; Phase 6 (STN+CNN) reused both
-%    runners with zero lines changed.
-%  - The lazy registry pattern (per-name imports inside get_method) is what
-%    let Phase 4 land without breaking Phase 5/6 stubs. A naive module-level
-%    `{name: Class}` dict would have crashed at registry import time.
-%  - The Makefile as orchestration layer kept the runners CUDA-agnostic.
-%    LD_LIBRARY_PATH lives in the Makefile, not in any .py file.
-%  - Things that would change next time: persist training history JSON from
-%    day one (Section~\ref{sec:history-persistence}); save per-class accuracy
-%    as structured JSON in eval, not just a text classification report.
+The architectural decision that paid off most clearly was the modular-monolith shape: the \texttt{ModelStrategy} abstract base class, a lazy registry, and the Makefile as the single command-line surface. The three methods are radically different internally — a scikit-learn forest with no notion of epochs, a Keras CNN, and a Keras CNN wrapping a custom Spatial Transformer layer — but they sit behind the same five-method contract (\texttt{name}, \texttt{fit}, \texttt{predict}, \texttt{save}, \texttt{load}), and the same \texttt{train.py} and \texttt{eval\_gtsrb.py} runners drove all three end-to-end. Phase~5 (plain CNN) reused Phase~4's runner with one line changed; Phase~6 (STN+CNN) reused both runners with zero lines changed. That uniformity is what made the cross-method analysis in Section~\ref{sec:method-comparison} possible without writing three separate analysis scripts — the comparison artefacts are mechanically aggregated, not hand-assembled.
+
+Two specific implementation patterns are worth surfacing. The lazy registry — per-name imports inside \texttt{get\_method()} rather than a module-level \texttt{\{name: Class\}} dictionary — is what let Phase~4 land before Phases~5 and 6's method stubs were filled in; a naive eager dictionary would have crashed at registry import time on the unimplemented stubs. Separately, the Makefile as the orchestration layer kept GPU concerns (the \texttt{LD\_LIBRARY\_PATH} export from Section~\ref{sec:gpu-setup}) out of every \texttt{.py} file. The runners are CUDA-agnostic by construction, which means they would also run unmodified on a CPU-only machine or on a different GPU stack — a portability property the project never explicitly tested for but got for free.
+
+What I would change next time is straightforward: persist training history as structured JSON from day one (Section~\ref{sec:history-persistence}), and have evaluation runners write per-class accuracy as JSON in addition to the human-readable classification report. Both lessons reduce to the same principle — \emph{data first, derived artefacts second}. An image or formatted text file is a one-way render; structured data can be re-mined into whatever artefact a downstream phase needs. This is the same instinct I would apply at the service layer in a backend system, and it translates cleanly to an ML experiment framework.
 
 % =====================================================================
 \bibliographystyle{plain}
