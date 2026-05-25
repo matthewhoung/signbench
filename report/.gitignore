@@ -1,0 +1,25 @@
+# LaTeX build artefacts — produced by pdflatex/xelatex/biber
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.bbl
+*.blg
+*.bcf
+*.run.xml
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.synctex(busy)
+*.nav
+*.snm
+*.vrb
+# Compiled PDF — uncomment the next line if you DON'T want to commit the PDF.
+# *.pdf
+
+# Bundled copies of ../analysis/ produced by `make bundle` / `make agent-bundle` —
+# derivable, never committed.
+analysis/
+analysis_for_agent/
